@@ -1,6 +1,6 @@
 #coding: utf-8
 
-from smbus2 import SMBus
+from smbus import SMBus
 import time
 
 bus_number  = 1
@@ -66,9 +66,10 @@ def readData():
 	temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
 	hum_raw  = (data[6] << 8)  |  data[7]
 	
-	compensate_T(temp_raw)
-	compensate_P(pres_raw)
-	compensate_H(hum_raw)
+	temp = compensate_T(temp_raw)
+	pres = compensate_P(pres_raw)
+	hum = compensate_H(hum_raw)
+	return {"temp":temp,"hum":hum,"pres":pres}
 
 def compensate_P(adc_P):
 	global  t_fine
@@ -92,7 +93,7 @@ def compensate_P(adc_P):
 	v2 = ((pressure / 4.0) * digP[7]) / 8192.0
 	pressure = pressure + ((v1 + v2 + digP[6]) / 16.0)  
 
-	print "pressure : %7.2f hPa" % (pressure/100)
+	return (pressure/100)
 
 def compensate_T(adc_T):
 	global t_fine
@@ -100,7 +101,7 @@ def compensate_T(adc_T):
 	v2 = (adc_T / 131072.0 - digT[0] / 8192.0) * (adc_T / 131072.0 - digT[0] / 8192.0) * digT[2]
 	t_fine = v1 + v2
 	temperature = t_fine / 5120.0
-	print "temp : %-6.2f ℃" % (temperature) 
+	return temperature
 
 def compensate_H(adc_H):
 	global t_fine
@@ -114,7 +115,7 @@ def compensate_H(adc_H):
 		var_h = 100.0
 	elif var_h < 0.0:
 		var_h = 0.0
-	print "hum : %6.2f ％" % (var_h)
+	return var_h
 
 
 def setup():
@@ -141,11 +142,10 @@ get_calib_param()
 
 if __name__ == '__main__':
 	try:
-		readData()
+		bar = readData()
+		print "temp : %-6.2f C" % (bar["temp"]) 
+		print "hum : %6.2f %%" % (bar["hum"])
+		print "pressure : %7.2f hPa" % (bar["pres"])
 	except KeyboardInterrupt:
 		pass
-
-
-
-
 
